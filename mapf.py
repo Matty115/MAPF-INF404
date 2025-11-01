@@ -1,10 +1,10 @@
-from pysat.formula import CNF
+from pysat.formula import WCNF
 from pysat.solvers import Glucose3
 import heapq
 from pysat.card import CardEnc, EncType
 
 def create_mapf_cnf(agents, grid_size, obstacles, max_time):
-    cnf = CNF()
+    wcnf = WCNF()
 
     def d(u, v, cost_fn=None):
         if u == v:
@@ -84,6 +84,8 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
     # feasible nodes precomputation
     feasible_nodes = [[feasible(a, t) for t in range(max_time + 1)] for a in range(len(agents))]
 
+
+    ## Restricciones duras y de cardinalidad
     for t in range(max_time):
         for x in range(grid_size[0]):
             for y in range(grid_size[1]):
@@ -92,10 +94,10 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
                 for v in neighbors(u):
                     lits.append(shift(u, v, t))
                     # H9 constrain
-                    cnf.append([-shift(u, v, t), -shift(v, u, t)])
+                    wcnf.append([-shift(u, v, t), -shift(v, u, t)])
                 # C1 constrain
                 res = CardEnc.equals(lits=lits, bound=1, encoding=EncType.pairwise)
-                cnf.extend(res.clauses)
+                wcnf.extend(res.clauses)
 
     for t in range(max_time + 1):
         for x in range(grid_size[0]):
@@ -108,50 +110,56 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
                 # C2 constrain
                 if lits:
                     res = CardEnc.atmost(lits=lits, bound=1, encoding=EncType.ladder)
-                    cnf.extend(res.clauses)
+                    wcnf.extend(res.clauses)
                 for v in neighbors(u):
                     # H10 constrain
-                    cnf.append([-shift(u, v, t), shift(v, v, t)])
+                    wcnf.append([-shift(u, v, t), shift(v, v, t)])
 
     for a in range(len(agents)):
         # H5 constrain
-        cnf.append([finalState(a, max_time)])
+        wcnf.append([finalState(a, max_time)])
         # H7 constrain
-        cnf.append([at(a, agents[a][0], 0)])
+        wcnf.append([at(a, agents[a][0], 0)])
         # H8 constrain
-        cnf.append([at(a, agents[a][1], max_time)])
+        wcnf.append([at(a, agents[a][1], max_time)])
         for t in range(max_time):
             for u in feasible_nodes[a][t]:
                 c = [-at(a, u, t)]
                 c += [at(a, v, t + 1) for v in feasible_nodes[a][t] if v in neighbors(u)]
                 # H11 constrain
-                cnf.append(c)
+                wcnf.append(c)
                 for v in feasible_nodes[a][t + 1]:
                     if v in neighbors(u):
                         # H1, H2 constrains
-                        cnf.append([-at(a, u, t), -shift(u, v, t), at(a, v, t + 1)])
-                        cnf.append([-at(a, u, t), -at(a, v, t + 1), shift(u, v, t)])
+                        wcnf.append([-at(a, u, t), -shift(u, v, t), at(a, v, t + 1)])
+                        wcnf.append([-at(a, u, t), -at(a, v, t + 1), shift(u, v, t)])
                 feasible_next = set(feasible_nodes[a][t + 1])
                 for v in neighbors(u):
                     if v not in feasible_next:
                         # H4 constrain
-                        cnf.append([-at(a, u, t), -shift(u, v, t)])
+                        wcnf.append([-at(a, u, t), -shift(u, v, t)])
             for v in feasible_nodes[a][t + 1]:
                 c = [-at(a, v, t + 1)]
                 if feasible_nodes[a][t]:
                     c += [at(a, u, t) for u in feasible_nodes[a][t] if v in neighbors(u)]
                 # H3 constrain
-                cnf.append(c)
+                wcnf.append(c)
         for t in range(d(agents[a][0], agents[a][1]), max_time):
             # H6 constrains
-            cnf.append([-at(a, agents[a][1], t), -finalState(a, t + 1), finalState(a, t)])
-            cnf.append([-finalState(a, t), at(a, agents[a][1], t)])
-            cnf.append([-finalState(a, t), finalState(a, t + 1)])
+            wcnf.append([-at(a, agents[a][1], t), -finalState(a, t + 1), finalState(a, t)])
+            wcnf.append([-finalState(a, t), at(a, agents[a][1], t)])
+            wcnf.append([-finalState(a, t), finalState(a, t + 1)])
         for t in range(max_time + 1):
             lit = [at(a, u, t) for u in feasible_nodes[a][t]]
             # C3 constrain
             res = CardEnc.equals(lits=lit, bound=1, encoding=EncType.pairwise)
-            cnf.extend(res.clauses)
+            wcnf.extend(res.clauses)
+
+        ## Restricciones blandas (maximizar costo)
+        for a in range(len(agents)):
+            for t in range(d(agents[a][0], agents[a][1]) ,max_time + 1):
+                # S1 constrain
+                wcnf.append([finalState(a, t)], weight=1)
 
 
-    return cnf
+    return wcnf
