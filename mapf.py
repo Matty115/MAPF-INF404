@@ -59,7 +59,7 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
     
     def shift(u, v, t):
         return at(len(agents), (0, 0), 0) + u[0] * (
-            grid_size[0] * grid_size[1]**2 * (max_time + 1)) + u[1] * (
+            grid_size[0] * grid_size[1] * grid_size[1] * (max_time + 1)) + u[1] * (
             grid_size[0] * grid_size[1] * (max_time + 1)) + v[0] * (
             grid_size[1] * (max_time + 1)) + v[1] * (max_time + 1) + t + 1
     
@@ -80,10 +80,12 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
                 for v in neighbors(u):
                     lits.append(shift(u, v, t))
                     # H9 constrain
-                    wcnf.append([-shift(u, v, t), -shift(v, u, t)])
+                    if v != u:
+                        wcnf.append([-shift(u, v, t), -shift(v, u, t)])
                 # C1 constrain
-                res = CardEnc.equals(lits=lits, bound=1, encoding=EncType.pairwise)
-                wcnf.extend(res.clauses)
+                if lits:
+                    res = CardEnc.equals(lits=lits, bound=1, encoding=EncType.pairwise)
+                    wcnf.extend(res.clauses)
 
     for t in range(max_time + 1):
         for x in range(grid_size[0]):
@@ -98,8 +100,9 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
                     res = CardEnc.atmost(lits=lits, bound=1, encoding=EncType.ladder)
                     wcnf.extend(res.clauses)
                 for v in neighbors(u):
-                    # H10 constrain
-                    wcnf.append([-shift(u, v, t), shift(v, v, t)])
+                    if v != u:
+                        # H10 constrain
+                        wcnf.append([-shift(u, v, t), shift(v, v, t)])
 
     for a in range(len(agents)):
         # H5 constrain
@@ -152,8 +155,8 @@ def create_mapf_cnf(agents, grid_size, obstacles, max_time):
             for t in range(distance, max_time + 1):
                 # S1 constrain
                 wcnf.append([finalState(a, t)], weight=1)
-    print(wcnf.nv)
     return wcnf
+
 
 if __name__ == "__main__":
     # agents = [
@@ -167,5 +170,5 @@ if __name__ == "__main__":
     wcnf = create_mapf_cnf(agents, grid_size, obstacles, max_time)
     rc2 = RC2(wcnf)
     model = rc2.compute()
-    print("Satisfiable with model:", model)
-    print("Peso óptimo:", rc2.cost)
+    print(model)
+    
