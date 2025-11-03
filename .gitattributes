@@ -1,0 +1,12 @@
+# Normalize line endings for text files (store LF in repo)
+* text=auto
+*.ipynb -text
+
+# Common binary formats
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+

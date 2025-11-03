@@ -1,0 +1,18 @@
+# Archivo de instancias para MAPF
+# Formato: nombre;agentes;grid;obstaculos;max_time
+# Las lineas que comienzan con # son ignoradas
+
+# Instancias basicas
+swap-3x3;[(0,0),(2,2)],[(2,0),(0,2)];(3,3);[];6
+corridor-1x4;[(0,0),(0,3)],[(0,3),(0,0)];(1,4);[];6
+three-agents-3x3;[(0,0),(2,2)],[(2,0),(0,2)],[(0,2),(2,0)];(3,3);[];8
+
+# Instancia con obstaculos
+warehouse-small;[(0,0),(4,4)],[(4,0),(0,4)];(5,5);[(2,2),(2,3),(3,2)];12
+
+# Grid mas grande
+grid-5x5-2agents;[(0,0),(4,4)],[(4,0),(0,4)];(5,5);[];10
+grid-6x6-3agents;[(0,0),(5,5)],[(5,0),(0,5)],[(0,5),(5,0)];(6,6);[];12
+
+# Caso complejo con 4 agentes
+four-agents-4x4;[(0,0),(3,3)],[(3,0),(0,3)],[(0,3),(3,0)],[(3,3),(0,0)];(4,4);[];10
